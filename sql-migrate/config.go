@@ -30,9 +30,7 @@ var ConfigEnvironment string
 
 func ConfigFlags(f *flag.FlagSet) {
 	f.StringVar(&ConfigFile, "config", "dbconfig.yml", "Configuration file to use.")
-	if _, err := os.Stat(ConfigFile); os.IsNotExist(err) {
-		ConfigFile = "dbconfig.toml"
-	}
+	//f.StringVar(&ConfigFile, "config", "dbconfig.toml", "Configuration file to use.")
 	f.StringVar(&ConfigEnvironment, "env", "development", "Environment to use.")
 }
 
@@ -98,6 +96,9 @@ func ReadConfigToml() (map[string]*Environment, error) {
 }
 
 func GetEnvironment() (*Environment, error) {
+	if _, err := os.Stat(ConfigFile); os.IsNotExist(err) {
+		ConfigFile = "dbconfig.toml"
+	}
 	config, err := ReadConfig()
 	if err != nil {
 		return nil, err
