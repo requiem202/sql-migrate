@@ -8,13 +8,15 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/rubenv/sql-migrate"
+	"github.com/requiem202/sql-migrate"
 	"gopkg.in/gorp.v1"
 	"gopkg.in/yaml.v2"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	"strings"
+	"github.com/spf13/viper"
 )
 
 var dialects = map[string]gorp.Dialect{
@@ -28,6 +30,9 @@ var ConfigEnvironment string
 
 func ConfigFlags(f *flag.FlagSet) {
 	f.StringVar(&ConfigFile, "config", "dbconfig.yml", "Configuration file to use.")
+	if _, err := os.Stat(ConfigFile); os.IsNotExist(err) {
+		ConfigFile = "dbconfig.toml"
+	}
 	f.StringVar(&ConfigEnvironment, "env", "development", "Environment to use.")
 }
 
@@ -40,15 +45,53 @@ type Environment struct {
 }
 
 func ReadConfig() (map[string]*Environment, error) {
-	file, err := ioutil.ReadFile(ConfigFile)
+	if strings.HasSuffix(ConfigFile, ".yaml", ) ||strings.HasSuffix(ConfigFile, ".yml") {
+		file, err := ioutil.ReadFile(ConfigFile)
+		if err != nil {
+			return nil, err
+		}
+
+		config := make(map[string]*Environment)
+		err = yaml.Unmarshal(file, config)
+		if err != nil {
+			return nil, err
+		}
+
+		return config, nil
+	} else {
+		return ReadConfigToml()
+	}
+}
+
+func ReadConfigToml() (map[string]*Environment, error) {
+	viper.SetConfigFile(ConfigFile)
+	err := viper.ReadInConfig()
 	if err != nil {
 		return nil, err
 	}
 
+	cfg := viper.GetStringMap("database")
 	config := make(map[string]*Environment)
-	err = yaml.Unmarshal(file, config)
-	if err != nil {
-		return nil, err
+
+	for key, m := range cfg {
+		dict := m.(map[string]interface{})
+		env := &Environment{}
+		if _, ok := dict["dialect"]; ok {
+			env.Dialect = dict["dialect"].(string)
+		}
+		if _, ok := dict["datasource"]; ok {
+			env.DataSource = dict["datasource"].(string)
+		}
+		if _, ok := dict["dir"]; ok {
+			env.Dir = dict["dir"].(string)
+		}
+		if _, ok := dict["table"]; ok {
+			env.TableName = dict["table"].(string)
+		}
+		if _, ok := dict["schema"]; ok {
+			env.SchemaName = dict["schema"].(string)
+		}
+		config[key] = env
 	}
 
 	return config, nil
