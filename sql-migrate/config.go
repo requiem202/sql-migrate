@@ -95,9 +95,20 @@ func ReadConfigToml() (map[string]*Environment, error) {
 	return config, nil
 }
 
+func appendEnvToFileName(fileName string) string {
+	ss := strings.Split(ConfigFile, ".")
+	return strings.Join(append(ss[:len(ss)-1], ConfigEnvironment, ss[len(ss)]), ".")
+}
+
 func GetEnvironment() (*Environment, error) {
 	if _, err := os.Stat(ConfigFile); os.IsNotExist(err) {
+
 		ConfigFile = "dbconfig.toml"
+		// try reading a dbconfig.environment.toml first
+		envConfigName := appendEnvToFileName(ConfigFile)
+		if _, err := os.Stat(envConfigName); err == nil {
+			ConfigFile = envConfigName
+		}
 	}
 	config, err := ReadConfig()
 	if err != nil {
