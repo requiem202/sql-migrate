@@ -97,7 +97,7 @@ func ReadConfigToml() (map[string]*Environment, error) {
 
 func appendEnvToFileName(fileName string) string {
 	ss := strings.Split(ConfigFile, ".")
-	return strings.Join(append(ss[:len(ss)-1], ConfigEnvironment, ss[len(ss)]), ".")
+	return strings.Join(append(ss[:len(ss)-1], ConfigEnvironment, ss[len(ss)-1]), ".")
 }
 
 func GetEnvironment() (*Environment, error) {
